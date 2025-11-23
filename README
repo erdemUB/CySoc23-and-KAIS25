@@ -1,0 +1,124 @@
+Here we explain how to compile the codes and reproduce the experiments.
+
+If you use this code, cite the following paper:
+
+On Cohesively Polarized Communities in Signed Networks
+
+All the datasets can be found at https://tinyurl.com/b6p6tztb.
+Note that this is a Google Drive link which is not accessible in China without a VPN. 
+
+Compilation
+-----------
+
+1. Compile with GCC-6.3.0:
+    $ make
+	-- To get the K values of vertices/edges, compile with 'DUMP_K=yes make'
+
+2. Run:
+
+	- Format: $ ./nucleus <graph> <algorithm> <hierarchy?> <mode>
+
+	ATOM
+	----
+    $ ./nucleus <graph> 23 <hierarchy?> <mode>
+
+	PHOTON
+	------
+    $ ./nucleus <graph> 239 <hierarchy?> 3
+	- To change the threshold value of PHOTON (default: 0.6, range: [0, 1]), change "PHOTON_THRESHOLD" in src/main.h and compile the code.
+	- Using a <mode> other than 3 will change the type of atom decomposition after the pre-processing stage.
+
+	ELECTRON
+	--------
+    $ ./nucleus <graph> 234 <hierarchy?> 2
+	- To change the threshold value of ELECTRON (default: 0.1, range: [-1, 1]), change "ELECTRON_THRESHOLD" in src/main.h and compile the code.
+	- Using a <mode> other than 2 will change the type of atom decomposition after the pre-processing stage.
+
+	-- <graph> is the input graph in edge list format; each line has an edge "u v sign", sign is 1 or -1.
+		Input file ends with .txt and there may be commented lines at the beginning (starting with % or #)
+	-- <hierarchy> is YES or NO. YES computes the hierarchy, subgraphs, densities, balances etc.
+		NO computes only K values.
+	-- <mode> specifies the triangle type: 1:+++,  2:+--, 4:++-, 8:---;
+		any combination is possible and expressed as the sum; e.g., 13 is 8+4+1, thus combines ---, ++-, +++ types.
+
+	- When <hierarchy> is YES, there are 2 output files
+		-- <graph>_<algorithm>_<mode>_Hierarchy: Runtimes, statistics, and significantly dense subgraphs.
+			Significance is defined by the "highlight" boolean variable in util.cpp;
+			now set as the ones with at least LOWERBOUND (set to 10 in src/main.h) nodes. 
+		-- <graph>_<algorithm>_<mode>_NUCLEI: Each line is a nucleus, contains 15 numbers and the node ids:
+			--- first 7 numbers are subgraph id, K value, |V|, |E|, |E-|, edge density, balance (relative-3);
+				then the leaf flag (depth from a leaf, 0 if the nucleus is a leaf in the hierarchy) and the parent id;
+			--- then details about bipartition:
+				the polarity value,
+				the number of vertices in the left set and right set (left set is greater than or equal to the right set, just for consistency)
+				harmony of the left set (|E+|-|E-|/(|V_r| \choose 2)),
+				harmony of the right set, (set to -1 if right set is empty; e.g., all edges are positive),
+				and tension (consider the edges across the sets; take (|E-|-|E+|)/(|V_l|*|V_r|)). (set to -1 if the right set is empty)
+			--- Rest is the node ids in the left set, followed by a -1;
+				and the nodes ids in the right set, followed by a -1.
+
+	- *NUCLEI file only contains the subgraphs with <= DEPTH (in main.h, set to 2) depth.
+	  Depth of a leaf is 0, depth of a leaf's parent is 1 and so on.
+		
+	- Code also outputs the 13 statistics for each significant subgraph (15 minus the subgraph id AND parent id).
+
+	- Example: "./nucleus bitcoin.txt 23 YES 2" does signed-truss decomposition for +-- and constructs the subgraphs and hierarchy
+
+	- To compute metrics for a given file of bipartitions, do './nucleus <graph> -1 <subgraphs>'
+		-- <graph> is the input graph in edge list format; each line has an edge "u v sign", sign is 1 or -1.
+		-- <subgraphs> file contains the subgraphs. Each line is a bipartition: nodes in the left set, -1, nodes in the right set, -1.
+			--- Make sure left set is the larger-or-equal one.
+			--- Example line: 0 1 2 -1 3 4 -1
+		-- The output will be <graph>_<subgraphs>_METRICS and has the same format with the *NUCLEI file.
+		    --- Nucleus specific things like K value, parent id etc. are just set to -1 in this *METRICS file
+
+Baselines
+---------
+
+BANSAL, EIGENSIGN, AND GREEDY:
+------------------------------
+We adapted the original code to find ten subgraphs by iteratively removing the outputted edge
+bipartition from the graph and reapplying the algorithm on the residual graph.
+
+1. Original code is available here: https://github.com/egalimberti/polarized_communities
+
+2. To obtain a file with the same format as the *NUCLEI file for a given file of bipartitions, run:
+   $ ./nucleus <graph> -1 <subgraphs>
+
+   - <subgraphs> file contains the subgraphs. Each line is a bipartition: nodes in the left set, -1, nodes in the right set, -1.
+		-- Make sure left set is the larger-or-equal one
+		-- Example line: 0 1 2 -1 3 4 -1
+
+   - The output will be <graph>_<subgraphs>_METRICS
+   		-- Nucleus specific things like K value, parent id etc. are just set to -1 in this *METRICS file
+
+SCG-MA AND SCG-R:
+-----------------
+Since both SCG-MA and SCG-R require knowledge of k (number of conflicting groups) beforehand, 
+we apply the same adaptation as BANSAL, EIGENSIGN, and GREEDY on k = 2.
+
+1. Original code is available here: https://github.com/rutzeng/SCG-NeurIPS2020
+
+2. To obtain a file with the same format as the *NUCLEI file for a given file of bipartitions, run:
+   $ ./nucleus <graph> -1 <subgraphs>
+
+   - <subgraphs> file contains the subgraphs. Each line is a bipartition: nodes in the left set, -1, nodes in the right set, -1.
+		-- Make sure left set is the larger-or-equal one
+		-- Example line: 0 1 2 -1 3 4 -1
+
+   - The output will be <graph>_<subgraphs>_METRICS
+   		-- Nucleus specific things like K value, parent id etc. are just set to -1 in this *METRICS file
+   
+ZHAO:
+-----
+1. Run:
+   $ ./nucleus <graph> zhao
+
+   - Subgraphs are in <graph>_zhao_NUCLEI
+
+TRUSS:
+------
+1. Run:
+   $ ./nucleus <graph> 23 YES 15
+
+   - Subgraphs are in <graph>_23_15_NUCLEI
