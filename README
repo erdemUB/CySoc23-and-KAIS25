@@ -1,8 +1,14 @@
 Here we explain how to compile the codes and reproduce the experiments.
 
-If you use this code, cite the following paper:
+If you use this code, please cite the following papers:
 
-On Cohesively Polarized Communities in Signed Networks
+- 	On Cohesively Polarized Communities in Signed Networks. 
+	J. Niu, and A. E. Sarıyüce
+	CySoc 2023 - International Workshop on Cyber Social Threats, in conjunction with WWW.
+
+-	Characterizing and Locating Polarized Communities in Signed Networks
+	J. Niu, and A. E. Sarıyüce
+	KAIS 2025 - Knowledge and Information Systems
 
 All the datasets can be found at https://tinyurl.com/b6p6tztb.
 Note that this is a Google Drive link which is not accessible in China without a VPN. 
